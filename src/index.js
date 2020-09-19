@@ -2,19 +2,23 @@ const canvas = document.getElementById("cnvs");
 
 const gameState = {};
 
-function onMouseMove(e) {
+function onMouseMove(e) 
+{
     gameState.pointer.x = e.pageX;
     gameState.pointer.y = e.pageY
 }
 
-function queueUpdates(numTicks) {
-    for (let i = 0; i < numTicks; i++) {
+function queueUpdates(numTicks) 
+{
+    for (let i = 0; i < numTicks; i++) 
+    {
         gameState.lastTick = gameState.lastTick + gameState.tickLength;
         update(gameState.lastTick);
     }
 }
 
-function draw(tFrame) {
+function draw(tFrame) 
+{
     const context = canvas.getContext('2d');
 
     // clear canvas
@@ -24,23 +28,25 @@ function draw(tFrame) {
     drawBall(context)
 }
 
-function update(tick) {
-
+function update(tick) 
+{
     const vx = (gameState.pointer.x - gameState.player.x) / 10
     gameState.player.x += vx
 
     const ball = gameState.ball
     ball.y += ball.vy
-    ball.y += ball.vx
+    ball.x += ball.vx
 }
 
-function run(tFrame) {
+function run(tFrame) 
+{
     gameState.stopCycle = window.requestAnimationFrame(run);
 
     const nextTick = gameState.lastTick + gameState.tickLength;
     let numTicks = 0;
 
-    if (tFrame > nextTick) {
+    if (tFrame > nextTick) 
+    {
         const timeSinceTick = tFrame - gameState.lastTick;
         numTicks = Math.floor(timeSinceTick / gameState.tickLength);
     }
@@ -49,29 +55,51 @@ function run(tFrame) {
     gameState.lastRender = tFrame;
 }
 
-function stopGame(handle) {
+function stopGame(handle) 
+{
     window.cancelAnimationFrame(handle);
 }
 
-function drawPlatform(context) {
+function drawPlatform(context) 
+{
     const {x, y, width, height} = gameState.player;
     context.beginPath();
-    context.rect(x - width / 2, y - height / 2, width, height);
-    context.fillStyle = "#FF0000";
+    //context.rect(x - width / 2, y - height / 2, width, height);
+    let xs = x - width / 2;
+    let ys = y - height / 2;
+    let r = 15;
+    
+    context.moveTo(xs+r,ys);
+    context.lineTo(xs+width-r,ys);    
+    context.arc(xs+width-r, ys+r, r, 3/2 * Math.PI, 0);    
+    context.lineTo(xs+width,ys+height-r);
+    context.arc(xs+width-r, ys+height-r, r, 0, 1/2 * Math.PI);
+    context.lineTo(xs+r,ys+height);
+    context.arc(xs+r, ys+height-r, r, 1/2 * Math.PI, Math.PI);
+    context.lineTo(xs,ys+r);
+    context.arc(xs+r, ys+r, r, Math.PI, 3/2 * Math.PI);
+    
+        
+    context.fillStyle = "#BF6730";
+       
+    context.stroke();
     context.fill();
     context.closePath();
 }
 
-function drawBall(context) {
+function drawBall(context) 
+{
     const {x, y, radius} = gameState.ball;
     context.beginPath();
     context.arc(x, y, radius, 0, 2 * Math.PI);
-    context.fillStyle = "#0000FF";
+    
+    context.fillStyle = "#34D2AF";
     context.fill();
     context.closePath();
 }
 
-function setup() {
+function setup() 
+{
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
