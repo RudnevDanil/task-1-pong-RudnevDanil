@@ -33,9 +33,14 @@ function update(tick)
     const vx = (gameState.pointer.x - gameState.player.x) / 10
     gameState.player.x += vx
 
-    const ball = gameState.ball
-    ball.y += ball.vy
-    ball.x += ball.vx
+    const context = canvas.getContext('2d');
+    const ball = gameState.ball;
+    if (!(context.isPointInStroke(platform,ball.x,ball.y))) // plattf
+    {
+        ball.y += ball.vy/2;
+        ball.x += ball.vx/2;
+    }
+    
 }
 
 function run(tFrame) 
@@ -60,15 +65,34 @@ function stopGame(handle)
     window.cancelAnimationFrame(handle);
 }
 
+let platform = new Path2D();
 function drawPlatform(context) 
 {
+    
     const {x, y, width, height} = gameState.player;
-    context.beginPath();
-    //context.rect(x - width / 2, y - height / 2, width, height);
     let xs = x - width / 2;
     let ys = y - height / 2;
     let r = 15;
     
+    platform = new Path2D();
+    //platform.rect(x - width / 2, y - height / 2, width, height);
+    context.beginPath();        
+    platform.moveTo(xs+r,ys);
+    platform.lineTo(xs+width-r,ys);    
+    platform.arc(xs+width-r, ys+r, r, 3/2 * Math.PI, 0);    
+    platform.lineTo(xs+width,ys+height-r);
+    platform.arc(xs+width-r, ys+height-r, r, 0, 1/2 * Math.PI);
+    platform.lineTo(xs+r,ys+height);
+    platform.arc(xs+r, ys+height-r, r, 1/2 * Math.PI, Math.PI);
+    platform.lineTo(xs,ys+r);
+    platform.arc(xs+r, ys+r, r, Math.PI, 3/2 * Math.PI); 
+    context.lineWidth = gameState.ball.radius * 2;
+    context.strokeStyle = 'red';
+    context.fill(platform);
+    context.stroke(platform);
+    context.closePath();
+    
+    context.beginPath();        
     context.moveTo(xs+r,ys);
     context.lineTo(xs+width-r,ys);    
     context.arc(xs+width-r, ys+r, r, 3/2 * Math.PI, 0);    
@@ -77,14 +101,14 @@ function drawPlatform(context)
     context.lineTo(xs+r,ys+height);
     context.arc(xs+r, ys+height-r, r, 1/2 * Math.PI, Math.PI);
     context.lineTo(xs,ys+r);
-    context.arc(xs+r, ys+r, r, Math.PI, 3/2 * Math.PI);
-    
-        
-    context.fillStyle = "#BF6730";
-       
+    context.arc(xs+r, ys+r, r, Math.PI, 3/2 * Math.PI);       
+    context.fillStyle = "#BF6730";       
     context.stroke();
     context.fill();
     context.closePath();
+    
+    
+
 }
 
 function drawBall(context) 
