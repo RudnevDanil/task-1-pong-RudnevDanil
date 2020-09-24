@@ -1,35 +1,27 @@
 const canvas = document.getElementById("cnvs");
 
 const gs = {};
-let do_stop = false;
-let timer;
-let seconds_left = 0;
-let score = 0;
 
-
-
-function check_platform_touched(cnt, ball)
+function check_platform_touched(ball)
 {
     // platform touched
-    let b = {
-        x: ball.x,
-        y: ball.y,
-    };
+    let {x, y} = ball;
     let plt = {
         l: gs.platform.x - gs.platform.width / 2 - ball.radius,// left
         r: gs.platform.x + gs.platform.width / 2 + ball.radius, // right
         t: gs.platform.y - gs.platform.height / 2 - ball.radius, // top
         b: gs.platform.y + gs.platform.height / 2 + ball.radius, // bottom
     };
-    //if ((cnt.isPointInStroke(plt_b,ball.x,ball.y+ball.radius))) 
-    if(b.x >= plt.l
-       && b.x <= plt.r
-       && b.y >= plt.t
-       && b.y <= plt.b)       
+    
+    // if ball touched platform
+    if   (x >= plt.l
+       && x <= plt.r
+       && y >= plt.t
+       && y <= plt.b)       
     {
         // change ball direction
         if (ball.vx == 0)
-          ball.vx = ((gs.platform.x > ball.x)?-1:1) * ball.max_vx_speed * Math.abs((gs.platform.x - ball.x) / (gs.platform.width / 2));
+          ball.vx = ((gs.platform.x > x)?-1:1) * ball.max_vx_speed * Math.abs((gs.platform.x - x) / (gs.platform.width / 2));
         if(ball.vy > 0)
             ball.vy = -1 * ball.vy;        
         
@@ -39,65 +31,66 @@ function check_platform_touched(cnt, ball)
         return false;
 }
 
-function check_wall_touched(cnt, ball)
+function check_wall_touched(ball)
 {
-    if((ball.x < ball.radius) || (ball.x > canvas.width - ball.radius)) // left or right wall
+    // left or right wall
+    if((ball.x < ball.radius) || (ball.x > canvas.width - ball.radius)) 
         ball.vx *= -1;
     else
-        if(ball.y < ball.radius) // ceiling
+        // ceiling
+        if(ball.y < ball.radius) 
             ball.vy *= -1;
         else
             return false;
     return true;
 }
 
-function check_block_touched(cnt, ball)
+function check_block_touched(ball)
 {
-    let pos = {x: ball.x, y: ball.y};
-    let r = ball.radius;
-    if(pos.y < gs.block_exs.h * gs.block_fs.blocks_h)
+    let {x, y, radius: r} = ball;
+    let {w: exw, h: exh} = gs.block_exs;
+    
+    // if ball in high part of screen
+    if(y < exh * gs.block_fs.blocks_h)
     {
-        pos.x = pos.x % gs.block_exs.w;
-        pos.y = pos.y % gs.block_exs.h;
-
-        let border = {
-            l_or_r: (gs.block_exs.w - gs.block.w) / 2,
-            u_or_d: (gs.block_exs.h - gs.block.h) / 2,    
-        };
+        x = x % exw;
+        y = y % exh;        
         
-        let curent_ind = Math.floor(ball.x / gs.block_exs.w)  + Math.floor(ball.y / gs.block_exs.h) * gs.block_fs.blocks_w;
-        let block_size = {
-            w: gs.block.w,
-            h: gs.block.h,
-        };
-        if (gs.crashed[curent_ind] == 1)
+        let ind = Math.floor(ball.x / exw)  + Math.floor(ball.y / exh) * gs.block_fs.blocks_w;
+               
+        // if block bot crashed
+        if (gs.crashed[ind] < 2)
         {
-            block_size.w *= gs.multCoef;
-            block_size.h *= gs.multCoef;            
-        }
-        
-        if((pos.x + r > border.l_or_r - gs.strW) 
-           && (pos.x - r < border.l_or_r + block_size.w + gs.strW) 
-           && (pos.y + r > border.u_or_d - gs.strW) 
-           && (pos.y - r < border.u_or_d + block_size.h + gs.strW))
-        {
-            if (gs.crashed[curent_ind] < 2)
+            let {w, h} = gs.block;
+            // make smaller if already touched once
+            if (gs.crashed[ind] == 1)
             {
+                w *= gs.multCoef;
+                h *= gs.multCoef;            
+            }
+            let lrBorder = (exw - w) / 2; // left (or irght) border
+            let udBorder = (exh - h) / 2; // up (or down) border        
+
+            // if ball touched block
+            if   ((x + r > lrBorder - gs.strW) 
+               && (x - r < lrBorder + w + gs.strW) 
+               && (y + r > udBorder - gs.strW) 
+               && (y - r < udBorder + h + gs.strW))
+            {
+                // change ball direction
                 ball.vy *= -1;
-                
+
                 // change platform color
-                if(gs.crashed[curent_ind] == 0)
+                gs.clr.plt = (gs.crashed[ind] == 0) ? gs.blocks_clr[ind].strokeStyle : gs.blocks_clr[ind].fillStyle;
+
+                if (gs.crashed[ind] == 0)
                 {
-                    gs.clr.plt = gs.blocks_colour[curent_ind].strokeStyle; 
-                    gs.blocks_colour[curent_ind].strokeStyle = gs.blocks_colour[curent_ind].fillStyle; 
-                }
-                else (gs.crashed[curent_ind] == 1)
-                {
-                    gs.clr.plt = gs.blocks_colour[curent_ind].fillStyle;
+                    gs.blocks_clr[ind].strokeStyle = gs.blocks_clr[ind].fillStyle; 
                 }
 
-                gs.crashed[curent_ind] += 1;
-                score += 1;
+                // crash block
+                gs.crashed[ind] += 1;
+                gs.score += 1;
             }
         }
     }
@@ -109,7 +102,7 @@ function check_win()
         for(let j = 0; j < gs.block_fs.blocks_w; j++)
             if(gs.crashed[i*gs.block_fs.blocks_w + j] < 2)
                 return false;
-    alert("WIN  " + seconds_left + "sec.  score: " + score);
+    alert("WIN  " + gs.seconds_left + "sec.  score: " + gs.score);
     return true;
 }
 
@@ -118,7 +111,7 @@ function check_bonus_touced(cnt, ball)
     if(gs.bonus_active && cnt.isPointInStroke(gs.bonus2d,ball.x,ball.y))
     {
         gs.bonus_active = false;
-        score += 15;
+        gs.score += 15;
     }        
 }
 
@@ -150,8 +143,8 @@ function check_bonus_get_out()
 function update(tick) 
 {
     // move platform
-    const vx = (gs.pointer.x - gs.platform.x) / 10
-    gs.platform.x += vx
+    const vx = (gs.pointer.x - gs.platform.x) / 10;
+    gs.platform.x += vx;
     
     // check if platform still in frame
     if(gs.platform.x > canvas.width - gs.platform.width/2)
@@ -165,20 +158,21 @@ function update(tick)
     // check fail
     if(ball.y >= canvas.height - ball.radius) // floor
     {
-        alert("LOSER. " + seconds_left + "sec.  score: " + score);
-        do_stop = true;
-        clearTimeout(timer);
+        alert("LOSER. " + gs.seconds_left + "sec.  score: " + gs.score);
+        gs.do_stop = true;
+        clearTimeout(gs.timer);
     }
     else
     {        
         // check win
         if(!check_win())
         {        
-            if(!check_platform_touched(cnt, ball))
-                if(!check_wall_touched(cnt, ball))
-                    check_block_touched(cnt, ball);
+            if(!check_platform_touched(ball))
+                if(!check_wall_touched(ball))
+                    check_block_touched(ball);
 
             check_bonus_touced(cnt, ball);
+            
             // moving ball
             ball.y += ball.vy / gs.ball.brakes * gs.ball.speed;
             ball.x += ball.vx / gs.ball.brakes * gs.ball.speed;
@@ -215,8 +209,7 @@ function drawBall(cnt)
 
 let plt_b = new Path2D();
 function drawPlatform(cnt) 
-{
-    
+{    
     const {x, y, width, height} = gs.platform;
     let xs = x - width / 2;
     let ys = y - height / 2;
@@ -238,14 +231,15 @@ function drawPlatform(cnt)
     cnt.font = "22px Verdana";
     cnt.textAlign = "center";
     cnt.fillStyle = gs.clr.text
-    cnt.fillText("" + seconds_left + "sec.  score: " + score, xs + Math.floor(width / 2), ys + Math.floor(height / 2));
+    cnt.fillText("" + gs.seconds_left + "sec.  score: " + gs.score, xs + Math.floor(width / 2), ys + Math.floor(height / 2));
     cnt.closePath();
 }
 
 function initBlocks()
 {
-    gs.blocks = blocks = [];
-    gs.blocks_colour = [];
+    // blocks
+    gs.blocks = [];
+    gs.blocks_clr = [];
     gs.crashed = [];
     
     // field size
@@ -277,7 +271,7 @@ function initBlocks()
     {
         for(let j = 0; j < gs.block_fs.blocks_w; j++)
         {
-            gs.blocks_colour[i*gs.block_fs.blocks_w + j]  = {
+            gs.blocks_clr[i*gs.block_fs.blocks_w + j]  = {
                 strokeStyle: gs.clr.blocks_s[Math.floor(Math.random() * gs.clr.blocks_s.length)], 
                 fillStyle: gs.clr.blocks_f[Math.floor(Math.random() * gs.clr.blocks_f.length)]
             };
@@ -302,7 +296,7 @@ function drawSingleBlock(cnt, st_x, st_y, i)
     
     if(gs.crashed[i] < 2)
     {
-        let w = gs.block.w, h = gs.block.h, r = gs.block.r;
+        let {w, h, r} = gs.block;
         if(gs.crashed[i] == 1)
         {
             st_x += w * (1 - gs.multCoef) / 2;
@@ -324,8 +318,8 @@ function drawSingleBlock(cnt, st_x, st_y, i)
         gs.blocks[i].arc(st_x + r , st_y + r , r , Math.PI, 3/2 * Math.PI);  
         
         cnt.lineWidth = gs.strW;
-        cnt.strokeStyle = gs.blocks_colour[i].strokeStyle;
-        cnt.fillStyle = gs.blocks_colour[i].fillStyle;
+        cnt.strokeStyle = gs.blocks_clr[i].strokeStyle;
+        cnt.fillStyle = gs.blocks_clr[i].fillStyle;
         cnt.fill(gs.blocks[i]);
         cnt.stroke(gs.blocks[i]);
         cnt.closePath();
@@ -379,17 +373,22 @@ function drawBonus(cnt)
 
 function timer_tictoc()
 {    
-    seconds_left += 1;
-    //if(seconds_left % 3 == 0)
-    if(seconds_left == 1)
+    gs.seconds_left += 1;
+    //if(gs.seconds_left % 15 == 0) // each 15 sec. new bonus
+    if(gs.seconds_left == 1) // bonus after 1st second
         generate_bonus();
-    if(seconds_left % 30 == 0)
+    if(gs.seconds_left % 30 == 0) // mult ball speed each 30 sec.
         gs.ball.speed *= 1.1;
-    timer = setTimeout(timer_tictoc, 1000);
+    gs.timer = setTimeout(timer_tictoc, 1000);
 }
 
 function setup() 
 {
+    gs.do_stop = false;
+    gs.timer;
+    gs.seconds_left = 0;
+    gs.score = 0;
+    
     gs.clr = {
         bkg: "#f0e9dd",
         blocks_s: ["#aec086","#b9c5c7","#d7d2cc","#a08c7d","#b3504b"],
@@ -430,13 +429,13 @@ function setup()
     }
     
     initBlocks();
-    timer = setTimeout(timer_tictoc, 1000);
+    gs.timer = setTimeout(timer_tictoc, 1000);
 
 }
 
 function run(tFrame) 
 {
-    if(!do_stop)
+    if(!gs.do_stop)
     {
         gs.stopCycle = window.requestAnimationFrame(run);
 
